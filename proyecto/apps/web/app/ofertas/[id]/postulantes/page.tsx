@@ -281,16 +281,16 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
 
         {showModal && selectedPostulante && (
           <div className="modal fade show d-block" tabIndex={-1} style={{ background: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '900px' }}>
+            <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" style={{ maxWidth: '1080px' }}>
               <div className="modal-content shadow-lg border-0" style={{ borderRadius: '16px' }}>
                 <div className="modal-header border-0 pb-0" style={{ padding: '24px 32px' }}>
                   <h2 className="modal-title" style={{ color: 'var(--accent)', fontWeight: 'bold' }}>Perfil del Candidato</h2>
                   <button type="button" className="btn-close" onClick={() => setShowModal(false)} aria-label="Close"></button>
                 </div>
-                <div className="modal-body" style={{ padding: '24px 32px' }}>
-                  <div className="row g-4">
-                    <div className="col-md-7">
-                      <div className="mb-4">
+                <div className="modal-body" style={{ padding: '20px 24px' }}>
+                  <div className="row g-3 align-items-start">
+                    <div className="col-lg-7">
+                      <div className="mb-3">
                         <h3 className="mb-1" style={{ fontWeight: '700' }}>{selectedPostulante.egresado?.nombres} {selectedPostulante.egresado?.apellidos}</h3>
                         <p className="text-muted" style={{ fontSize: '1.1rem' }}>{selectedPostulante.egresado?.carrera} | Egreso {selectedPostulante.egresado?.anioEgreso}</p>
                         <div style={{ marginTop: '12px' }}>
@@ -304,7 +304,7 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                         </div>
                       </div>
                       
-                      <div className="mt-4">
+                      <div className="mt-3">
                         <h4 className="h5 mb-3" style={{ fontWeight: '600' }}>Habilidades</h4>
                         <div className="d-flex gap-2 flex-wrap">
                           {selectedPostulante.egresado?.egresadoHabilidades?.map((h: any, i: number) => (
@@ -316,8 +316,8 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                       </div>
                     </div>
                     
-                    <div className="col-md-5 border-start" style={{ paddingLeft: '32px' }}>
-                      <h4 className="h5 mb-4" style={{ fontWeight: '600' }}>Gestión de Postulación</h4>
+                    <div className="col-lg-5" style={{ borderLeft: '1px solid #e2e8f0', paddingLeft: '24px' }}>
+                      <h4 className="h5 mb-3" style={{ fontWeight: '600' }}>Gestión de Postulación</h4>
                       <div className="mb-3">
                         <label className="form-label small text-muted">Estado Actual</label>
                         <select className="form-select" style={{ borderRadius: '8px', padding: '10px' }} value={selectedEstado} onChange={(e) => setSelectedEstado(e.target.value)}>
@@ -332,7 +332,7 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                         <label className="form-label small text-muted">Comentario Interno</label>
                         <textarea className="form-control" style={{ borderRadius: '8px' }} rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Escribe un motivo o comentario..."></textarea>
                       </div>
-                      <div className="mt-4 pt-3 border-top">
+                      <div className="mt-3 pt-3 border-top">
                         <p className="small text-muted mb-2">Comentario Actual</p>
                         <div className="p-3 rounded-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a' }}>
                           {selectedPostulante.comentario?.trim() ? selectedPostulante.comentario : 'Sin comentario registrado.'}
@@ -351,7 +351,7 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                            </button>
                          )}
                       </div>
-                      <div className="mt-4 pt-3 border-top">
+                      <div className="mt-3 pt-3 border-top">
                         <p className="small text-muted mb-2">Estado Público Actual</p>
                         {getStatusBadge(selectedPostulante.estado)}
                       </div>
@@ -359,8 +359,8 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                   </div>
 
                   {selectedPostulante.historial && selectedPostulante.historial.length > 0 && (
-                    <div className="mt-5 pt-4 border-top">
-                      <h4 className="h5 mb-4" style={{ fontWeight: '600' }}>Todos los Comentarios</h4>
+                    <div className="mt-4 pt-3 border-top">
+                      <h4 className="h5 mb-3" style={{ fontWeight: '600' }}>Todos los Comentarios</h4>
                       <div className="d-flex flex-column gap-3">
                         {selectedPostulante.historial.map((item: any, index: number) => (
                           <div key={item.id || index} className="p-3 rounded-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
@@ -375,22 +375,23 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                     </div>
                   )}
 
-                  <div className="mt-5 pt-4 border-top">
-                    <h4 className="h5 mb-4" style={{ fontWeight: '600' }}>Experiencia Laboral</h4>
-                    {selectedPostulante.egresado?.experienciasLaborales && selectedPostulante.egresado.experienciasLaborales.length > 0 ? (
-                      selectedPostulante.egresado.experienciasLaborales.map((exp: any, i: number) => (
-                        <div key={i} className="mb-4 p-3 bg-light rounded-3" style={{ border: '1px solid #eee' }}>
-                          <p className="mb-1"><strong>{exp.cargo}</strong> en <span style={{ color: 'var(--accent)' }}>{exp.empresa}</span></p>
-                          <p className="small text-muted mb-0" style={{ lineHeight: '1.5' }}>{exp.descripcion}</p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-muted small italic">Sin experiencia registrada.</p>
-                    )}
-                  </div>
+                  <div className="row g-3 mt-2 pt-3 border-top">
+                    <div className="col-lg-5">
+                      <h4 className="h5 mb-3" style={{ fontWeight: '600' }}>Experiencia Laboral</h4>
+                      {selectedPostulante.egresado?.experienciasLaborales && selectedPostulante.egresado.experienciasLaborales.length > 0 ? (
+                        selectedPostulante.egresado.experienciasLaborales.map((exp: any, i: number) => (
+                          <div key={i} className="mb-3 p-3 bg-light rounded-3" style={{ border: '1px solid #eee' }}>
+                            <p className="mb-1"><strong>{exp.cargo}</strong> en <span style={{ color: 'var(--accent)' }}>{exp.empresa}</span></p>
+                            <p className="small text-muted mb-0" style={{ lineHeight: '1.5' }}>{exp.descripcion}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-muted small italic">Sin experiencia registrada.</p>
+                      )}
+                    </div>
 
-                  <div className="mt-5 pt-4 border-top">
-                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                    <div className="col-lg-7">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
                       <div>
                         <h4 className="h5 mb-1" style={{ fontWeight: 700, color: '#0f172a' }}>Historial de Evaluaciones</h4>
                         <p className="mb-0" style={{ color: '#64748b', fontSize: '0.92rem' }}>Seguimiento del desempeño del candidato en el proceso.</p>
@@ -519,10 +520,11 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                         Aún no se han registrado evaluaciones para este candidato.
                       </div>
                     )}
+                    </div>
                   </div>
 
                   {selectedPostulante.egresado?.cvUrl && (
-                    <div className="mt-5 pt-4 text-center">
+                    <div className="mt-4 pt-3 text-center">
                       <a href={selectedPostulante.egresado.cvUrl} target="_blank" rel="noreferrer" className="btn btn-outline-secondary px-4" style={{ borderRadius: '20px' }}>
                         📄 Ver CV
                       </a>
