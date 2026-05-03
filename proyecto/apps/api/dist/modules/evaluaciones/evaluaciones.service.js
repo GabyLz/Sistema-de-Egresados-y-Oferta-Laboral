@@ -12,12 +12,14 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.EvaluacionesService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../../prisma/prisma.service");
+const notificaciones_service_1 = require("../notificaciones/notificaciones.service");
 let EvaluacionesService = class EvaluacionesService {
-    constructor(prisma) {
+    constructor(prisma, notificacionesService) {
         this.prisma = prisma;
+        this.notificacionesService = notificacionesService;
     }
     async create(data) {
-        return this.prisma.evaluacionPostulante.create({
+        const evaluacion = await this.prisma.evaluacionPostulante.create({
             data: {
                 postulacionId: data.postulacionId,
                 empresaId: data.empresaId,
@@ -25,7 +27,31 @@ let EvaluacionesService = class EvaluacionesService {
                 comentarios: data.comentarios,
                 competencias: data.competencias,
             },
+            include: {
+                postulacion: {
+                    include: {
+                        egresado: true,
+                        oferta: true,
+                    },
+                },
+                empresa: true,
+            },
         });
+        // Notificar al egresado que recibió una evaluación
+        try {
+            if (evaluacion.postulacion?.egresado) {
+                await this.notificacionesService.create({
+                    userId: evaluacion.postulacion.egresado.id,
+                    titulo: 'Evaluación Recibida',
+                    mensaje: `La empresa ${evaluacion.empresa.razonSocial} ha evaluado tu postulación a "${evaluacion.postulacion.oferta.titulo}". Puntaje: ${evaluacion.puntaje}/100`,
+                    tipo: 'interna',
+                });
+            }
+        }
+        catch (notifError) {
+            console.error('Error al enviar notificación de evaluación:', notifError);
+        }
+        return evaluacion;
     }
     async findByPostulacion(postulacionId) {
         return this.prisma.evaluacionPostulante.findMany({
@@ -72,5 +98,6 @@ let EvaluacionesService = class EvaluacionesService {
 exports.EvaluacionesService = EvaluacionesService;
 exports.EvaluacionesService = EvaluacionesService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        notificaciones_service_1.NotificacionesService])
 ], EvaluacionesService);
