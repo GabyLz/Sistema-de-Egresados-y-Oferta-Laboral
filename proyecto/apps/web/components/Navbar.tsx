@@ -173,7 +173,7 @@ export default function Navbar() {
   }
 
   if (isLoggedIn && userRole) {
-    const showNotificationCenter = userRole === 'admin';
+    const showNotificationCenter = true; // Mostrar campana para todos los roles
 
     return (
       <>
