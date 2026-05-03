@@ -73,6 +73,33 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
     return '#6b7280';
   };
 
+  const getEvaluationTone = (score: number) => {
+    if (score >= 8) {
+      return {
+        label: 'Excelente',
+        text: '#065f46',
+        chipBg: '#d1fae5',
+        border: '#6ee7b7',
+      };
+    }
+
+    if (score >= 6) {
+      return {
+        label: 'Bueno',
+        text: '#92400e',
+        chipBg: '#fef3c7',
+        border: '#fcd34d',
+      };
+    }
+
+    return {
+      label: 'Por mejorar',
+      text: '#991b1b',
+      chipBg: '#fee2e2',
+      border: '#fca5a5',
+    };
+  };
+
   const sortedPostulaciones = [...postulaciones].sort((a, b) => {
     const weight = (estado: string) => {
       const normalized = (estado || '').toLowerCase();
@@ -362,24 +389,137 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                     )}
                   </div>
 
-                  {selectedPostulante.evaluaciones && selectedPostulante.evaluaciones.length > 0 && (
-                    <div className="mt-5 pt-4 border-top">
-                      <h4 className="h5 mb-4" style={{ fontWeight: '600' }}>Historial de Evaluaciones</h4>
-                      {selectedPostulante.evaluaciones.map((ev: any, i: number) => (
-                        <div key={i} className="mb-3 p-3 bg-light rounded-3" style={{ border: '1px solid #e2e8f0' }}>
-                          <div className="d-flex justify-content-between align-items-center mb-2">
-                            <span className="fw-bold" style={{ color: 'var(--success)' }}>Puntaje: {ev.puntaje}/10</span>
-                            <span className="small text-muted">{formatDate(ev.fecha)}</span>
-                          </div>
-                          <p className="small mb-3" style={{ color: '#444' }}>{ev.comentarios}</p>
-                          <div className="d-flex gap-4 small text-muted border-top pt-2">
-                            <span>Técnica: <strong className="text-dark">{ev.competencias?.tecnica}/5</strong></span>
-                            <span>Comunicación: <strong className="text-dark">{ev.competencias?.comunicacion}/5</strong></span>
-                          </div>
-                        </div>
-                      ))}
+                  <div className="mt-5 pt-4 border-top">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                      <div>
+                        <h4 className="h5 mb-1" style={{ fontWeight: 700, color: '#0f172a' }}>Historial de Evaluaciones</h4>
+                        <p className="mb-0" style={{ color: '#64748b', fontSize: '0.92rem' }}>Seguimiento del desempeño del candidato en el proceso.</p>
+                      </div>
+                      <div style={{
+                        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                        borderRadius: '12px',
+                        padding: '10px 14px',
+                        minWidth: '170px',
+                        color: '#f8fafc',
+                        boxShadow: '0 10px 24px rgba(15, 23, 42, 0.18)'
+                      }}>
+                        <p style={{ margin: 0, fontSize: '0.75rem', opacity: 0.75, letterSpacing: '0.04em', textTransform: 'uppercase' }}>Promedio General</p>
+                        <p style={{ margin: '4px 0 0', fontSize: '1.3rem', fontWeight: 700 }}>
+                          {selectedPostulante.evaluaciones?.length
+                            ? `${(
+                                selectedPostulante.evaluaciones.reduce((acc: number, ev: any) => acc + (Number(ev.puntaje) || 0), 0) /
+                                selectedPostulante.evaluaciones.length
+                              ).toFixed(1)}/10`
+                            : 'Sin data'}
+                        </p>
+                      </div>
                     </div>
-                  )}
+
+                    {selectedPostulante.evaluaciones && selectedPostulante.evaluaciones.length > 0 ? (
+                      <div className="d-flex flex-column gap-3">
+                        {selectedPostulante.evaluaciones.map((ev: any, i: number) => {
+                          const tone = getEvaluationTone(Number(ev.puntaje) || 0);
+                          const tecnica = Number(ev.competencias?.tecnica) || 0;
+                          const comunicacion = Number(ev.competencias?.comunicacion) || 0;
+                          const proactividad = Number(ev.competencias?.proactividad) || 0;
+
+                          return (
+                            <div
+                              key={i}
+                              style={{
+                                border: `1px solid ${tone.border}`,
+                                borderRadius: '14px',
+                                overflow: 'hidden',
+                                background: '#ffffff',
+                                boxShadow: '0 8px 20px rgba(15, 23, 42, 0.06)'
+                              }}
+                            >
+                              <div
+                                className="d-flex justify-content-between align-items-center flex-wrap gap-2"
+                                style={{
+                                  padding: '12px 16px',
+                                  background: 'linear-gradient(90deg, #f8fafc 0%, #eef2ff 100%)',
+                                  borderBottom: '1px solid #e2e8f0'
+                                }}
+                              >
+                                <div className="d-flex align-items-center gap-2">
+                                  <span style={{ fontWeight: 700, color: '#0f172a' }}>Evaluación #{i + 1}</span>
+                                  <span
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      fontWeight: 700,
+                                      color: tone.text,
+                                      background: tone.chipBg,
+                                      border: `1px solid ${tone.border}`,
+                                      borderRadius: '999px',
+                                      padding: '4px 10px'
+                                    }}
+                                  >
+                                    {tone.label}
+                                  </span>
+                                </div>
+                                <div className="d-flex align-items-center gap-3" style={{ fontSize: '0.86rem' }}>
+                                  <span style={{ color: '#475569' }}>{formatDate(ev.fecha)}</span>
+                                  <span style={{ fontWeight: 700, color: tone.text }}>Puntaje: {ev.puntaje}/10</span>
+                                </div>
+                              </div>
+
+                              <div style={{ padding: '16px' }}>
+                                <p style={{ margin: '0 0 14px', color: '#334155', lineHeight: 1.5 }}>
+                                  {ev.comentarios?.trim() ? ev.comentarios : 'Sin observaciones registradas.'}
+                                </p>
+
+                                <div className="d-flex flex-column gap-2">
+                                  <div>
+                                    <div className="d-flex justify-content-between" style={{ fontSize: '0.83rem', color: '#475569' }}>
+                                      <span>Competencia Técnica</span>
+                                      <strong style={{ color: '#0f172a' }}>{tecnica}/5</strong>
+                                    </div>
+                                    <div style={{ marginTop: '6px', height: '8px', borderRadius: '999px', background: '#e2e8f0' }}>
+                                      <div style={{ width: `${(tecnica / 5) * 100}%`, height: '100%', borderRadius: '999px', background: '#2563eb' }} />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <div className="d-flex justify-content-between" style={{ fontSize: '0.83rem', color: '#475569' }}>
+                                      <span>Comunicación</span>
+                                      <strong style={{ color: '#0f172a' }}>{comunicacion}/5</strong>
+                                    </div>
+                                    <div style={{ marginTop: '6px', height: '8px', borderRadius: '999px', background: '#e2e8f0' }}>
+                                      <div style={{ width: `${(comunicacion / 5) * 100}%`, height: '100%', borderRadius: '999px', background: '#0d9488' }} />
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <div className="d-flex justify-content-between" style={{ fontSize: '0.83rem', color: '#475569' }}>
+                                      <span>Proactividad</span>
+                                      <strong style={{ color: '#0f172a' }}>{proactividad}/5</strong>
+                                    </div>
+                                    <div style={{ marginTop: '6px', height: '8px', borderRadius: '999px', background: '#e2e8f0' }}>
+                                      <div style={{ width: `${(proactividad / 5) * 100}%`, height: '100%', borderRadius: '999px', background: '#7c3aed' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div
+                        style={{
+                          border: '1px dashed #cbd5e1',
+                          borderRadius: '14px',
+                          padding: '24px',
+                          background: '#f8fafc',
+                          textAlign: 'center',
+                          color: '#64748b'
+                        }}
+                      >
+                        Aún no se han registrado evaluaciones para este candidato.
+                      </div>
+                    )}
+                  </div>
 
                   {selectedPostulante.egresado?.cvUrl && (
                     <div className="mt-5 pt-4 text-center">
