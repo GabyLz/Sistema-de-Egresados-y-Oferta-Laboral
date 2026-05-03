@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email           String            @unique @db.VarChar(255)
+  passwordHash    String            @map("password_hash")
+  rol             String            @db.VarChar(50)
+  isVerified      Boolean           @default(false) @map("is_verified")
+  verificationToken String?         @map("verification_token") @db.VarChar(255)
+  resetPasswordToken String?        @map("reset_password_token") @db.VarChar(255)
+  resetPasswordExpires DateTime?    @map("reset_password_expires") @db.Timestamptz(6)
+  createdAt       DateTime?         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime?         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  administradores Administrador?
+  egresado        Egresado?
+  empresa         Empresa?
+  notificaciones  Notificacion[]
+  reportes        ReporteGenerado[]
+  auditLogs       AuditLog[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([rol], map: "idx_users_rol")
+  @@map("users")
+}
+
+model Egresado {
+  id                    String               @id @db.Uuid
+  nombres               String               @db.VarChar(100)
+  apellidos             String               @db.VarChar(100)
+  dni                   String               @unique @db.VarChar(20)
+  fechaNacimiento       DateTime?            @map("fecha_nacimiento") @db.Date
+  telefono              String?              @db.VarChar(20)
+  direccion             String?
+  carrera               String?              @db.VarChar(150)
+  anioEgreso            Int?                 @map("anio_egreso")
+  cvUrl                 String?              @map("cv_url")
+  empleadoActualmente   Boolean?             @default(false) @map("empleado_actualmente")
+  habilidadesBlandas    Json?                @map("habilidades_blandas")
+  updatedAt             DateTime?            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  egresadoHabilidades   EgresadoHabilidad[]
+  user                  User                 @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  experienciasLaborales ExperienciaLaboral[]
+  formacionesAcademicas FormacionAcademica[]
+  postulaciones         Postulacion[]
+
+  @@index([anioEgreso], map: "idx_egresados_anio_egreso")
+  @@index([carrera], map: "idx_egresados_carrera")
+  @@index([dni], map: "idx_egresados_dni")
+  @@map("egresados")
+}
+
+model Empresa {
+  id               String          @id @db.Uuid
+  razonSocial      String          @map("razon_social") @db.VarChar(200)
+  nombreComercial  String?         @map("nombre_comercial") @db.VarChar(200)
+  rut              String          @unique @db.VarChar(50) // RUC in Peru
+  telefono         String?         @db.VarChar(20)
+  sector           String?         @db.VarChar(100)
+  ubicacion        String?
+  sitioWeb         String?         @map("sitio_web") @db.VarChar(255)
+  descripcion      String?         @db.VarChar(500)
+  logoUrl          String?         @map("logo_url")
+  redesSociales    Json?           @map("redes_sociales") // { linkedin, facebook, twitter, etc }
+  estado           String          @default("pendiente") @db.VarChar(20) // pendiente, aprobado, rechazado
+  user             User            @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  ofertasLaborales OfertaLaboral[]
+  evaluaciones     EvaluacionPostulante[]
+
+  @@index([sector], map: "idx_empresas_sector")
+  @@index([estado], map: "idx_empresas_estado")
+  @@map("empresas")
+}
+
+model AuditLog {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String   @db.VarChar(100) // login_attempt, register, etc
+  details   Json?
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model Administrador {
+  id    String @id @db.Uuid
+  users User   @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("administradores")
+}
+
+model Habilidad {
+  id                  String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  nombre              String              @unique @db.VarChar(100)
+  tipo                String              @db.VarChar(20)
+  egresadoHabilidades EgresadoHabilidad[]
+  ofertaHabilidades   OfertaHabilidad[]
+
+  @@map("habilidades")
+}
+
+model EgresadoHabilidad {
+  egresadoId  String    @map("egresado_id") @db.Uuid
+  habilidadId String    @map("habilidad_id") @db.Uuid
+  nivel       Int?
+  egresado    Egresado  @relation(fields: [egresadoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  habilidad   Habilidad @relation(fields: [habilidadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([egresadoId, habilidadId])
+  @@index([habilidadId, nivel], map: "idx_egresado_habilidad")
+  @@map("egresado_habilidades")
+}
+
+model OfertaLaboral {
+  id                String            @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  empresaId         String            @map("empresa_id") @db.Uuid
+  titulo            String            @db.VarChar(200)
+  descripcion       String
+  ubicacion         String?
+  modalidad         String            @db.VarChar(20)
+  tipoContrato      String            @map("tipo_contrato") @db.VarChar(20)
+  salarioMin        Decimal?          @map("salario_min") @db.Decimal(12, 2)
+  salarioMax        Decimal?          @map("salario_max") @db.Decimal(12, 2)
+  estado            String            @default("Pendiente") @db.VarChar(20) // Pendiente, Aprobada, Rechazada, Cerrada
+  activa            Boolean?          @default(true)
+  fechaPublicacion  DateTime?         @default(dbgenerated("CURRENT_DATE")) @map("fecha_publicacion") @db.Date
+  fechaCierre       DateTime?         @map("fecha_cierre") @db.Date
+  createdAt         DateTime?         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime?         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  ofertaHabilidades OfertaHabilidad[]
+  empresa           Empresa           @relation(fields: [empresaId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  postulaciones     Postulacion[]
+
+  @@index([empresaId], map: "idx_ofertas_empresa")
+  @@index([fechaPublicacion], map: "idx_ofertas_fecha_publicacion")
+  @@index([modalidad], map: "idx_ofertas_modalidad")
+  @@index([salarioMin, salarioMax], map: "idx_ofertas_salario")
+  @@index([estado], map: "idx_ofertas_estado")
+  @@map("ofertas_laborales")
+}
+
+model EvaluacionPostulante {
+  id            String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  postulacionId String      @map("postulacion_id") @db.Uuid
+  empresaId     String      @map("empresa_id") @db.Uuid
+  puntaje       Int
+  comentarios   String?
+  competencias  Json?       // { "comunicacion": 5, "tecnica": 4, etc }
+  fecha         DateTime    @default(now()) @db.Timestamptz(6)
+  postulacion   Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade)
+  empresa       Empresa     @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("evaluaciones_postulantes")
+}
+
+model OfertaHabilidad {
+  ofertaId    String        @map("oferta_id") @db.Uuid
+  habilidadId String        @map("habilidad_id") @db.Uuid
+  prioridad   Int?          @default(1)
+  habilidad   Habilidad     @relation(fields: [habilidadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  oferta      OfertaLaboral @relation(fields: [ofertaId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([ofertaId, habilidadId])
+  @@map("oferta_habilidades")
+}
+
+model Postulacion {
+  id               String                       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  egresadoId       String                       @map("egresado_id") @db.Uuid
+  ofertaId         String                       @map("oferta_id") @db.Uuid
+  estado           String                       @default("postulado") @db.VarChar(20)
+  comentario       String?
+  fechaPostulacion DateTime?                    @default(now()) @map("fecha_postulacion") @db.Timestamptz(6)
+  updatedAt        DateTime?                    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  historial        HistorialEstadoPostulacion[]
+  egresado         Egresado                     @relation(fields: [egresadoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  oferta           OfertaLaboral                @relation(fields: [ofertaId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  evaluaciones     EvaluacionPostulante[]
+
+  @@unique([egresadoId, ofertaId])
+  @@index([egresadoId], map: "idx_postulaciones_egresado")
+  @@index([estado], map: "idx_postulaciones_estado")
+  @@index([fechaPostulacion], map: "idx_postulaciones_fecha")
+  @@index([ofertaId], map: "idx_postulaciones_oferta")
+  @@index([ofertaId, estado], map: "idx_postulaciones_oferta_estado")
+  @@map("postulaciones")
+}
+
+model HistorialEstadoPostulacion {
+  id             String      @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  postulacionId  String      @map("postulacion_id") @db.Uuid
+  estadoAnterior String?     @map("estado_anterior") @db.VarChar(20)
+  estadoNuevo    String      @map("estado_nuevo") @db.VarChar(20)
+  motivo         String?
+  fechaCambio    DateTime?   @default(now()) @map("fecha_cambio") @db.Timestamptz(6)
+  postulacion    Postulacion @relation(fields: [postulacionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([postulacionId], map: "idx_historial_postulacion")
+  @@map("historial_estado_postulaciones")
+}
+
+model Notificacion {
+  id        String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId String    @map("usuario_id") @db.Uuid
+  tipo      String    @db.VarChar(20)
+  titulo    String    @db.VarChar(255)
+  contenido String
+  leida     Boolean?  @default(false)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  usuario   User      @relation(fields: [usuarioId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([usuarioId], map: "idx_notificaciones_usuario")
+  @@map("notificaciones")
+}
+
+model ReporteGenerado {
+  id              String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  usuarioId       String    @map("usuario_id") @db.Uuid
+  tipoReporte     String    @map("tipo_reporte") @db.VarChar(100)
+  parametros      Json?
+  urlArchivo      String?   @map("url_archivo")
+  estado          String?   @default("procesando") @db.VarChar(20)
+  fechaSolicitud  DateTime? @default(now()) @map("fecha_solicitud") @db.Timestamptz(6)
+  fechaCompletado DateTime? @map("fecha_completado") @db.Timestamptz(6)
+  usuario         User      @relation(fields: [usuarioId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([estado], map: "idx_reportes_estado")
+  @@index([usuarioId], map: "idx_reportes_usuario")
+  @@map("reportes_generados")
+}
+
+model ExperienciaLaboral {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  egresadoId  String    @map("egresado_id") @db.Uuid
+  empresa     String    @db.VarChar(150)
+  cargo       String    @db.VarChar(100)
+  fechaInicio DateTime  @map("fecha_inicio") @db.Date
+  fechaFin    DateTime? @map("fecha_fin") @db.Date
+  descripcion String?
+  egresado    Egresado  @relation(fields: [egresadoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([egresadoId], map: "idx_exp_egresado")
+  @@map("experiencias_laborales")
+}
+
+model FormacionAcademica {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  egresadoId  String    @map("egresado_id") @db.Uuid
+  institucion String    @db.VarChar(200)
+  titulo      String    @db.VarChar(200)
+  fechaInicio DateTime  @map("fecha_inicio") @db.Date
+  fechaFin    DateTime? @map("fecha_fin") @db.Date
+  egresado    Egresado  @relation(fields: [egresadoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([egresadoId], map: "idx_formacion_egresado")
+  @@map("formaciones_academicas")
+}

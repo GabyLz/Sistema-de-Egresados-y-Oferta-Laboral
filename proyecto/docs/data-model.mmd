@@ -1,0 +1,107 @@
+%% Data model ER diagram (simplified) - Mermaid
+erDiagram
+    USERS {
+        UUID id PK
+        string email
+        string password_hash
+        string rol
+        timestamptz created_at
+        timestamptz updated_at
+    }
+    EGRESADOS {
+        UUID id PK FK(users.id)
+        string nombres
+        string apellidos
+        string dni
+        date fecha_nacimiento
+        string telefono
+        text direccion
+        string carrera
+        int anio_egreso
+        bool empleado_actualmente
+        text cv_url
+    }
+    EMPRESAS {
+        UUID id PK FK(users.id)
+        string razon_social
+        string rut
+        string sector
+        text ubicacion
+    }
+    HABILIDADES {
+        UUID id PK
+        string nombre
+        string tipo
+    }
+    EGRESADO_HABILIDADES {
+        UUID egresado_id FK(egresados.id)
+        UUID habilidad_id FK(habilidades.id)
+        int nivel
+    }
+    OFERTAS_LABORALES {
+        UUID id PK
+        UUID empresa_id FK(empresas.id)
+        string titulo
+        text descripcion
+        string modalidad
+        string tipo_contrato
+        decimal salario_min
+        decimal salario_max
+        date fecha_publicacion
+        date fecha_cierre
+    }
+    OFERTA_HABILIDADES {
+        UUID oferta_id FK(ofertas_laborales.id)
+        UUID habilidad_id FK(habilidades.id)
+        int prioridad
+    }
+    POSTULACIONES {
+        UUID id PK
+        UUID egresado_id FK(egresados.id)
+        UUID oferta_id FK(ofertas_laborales.id)
+        string estado
+        timestamptz fecha_postulacion
+        timestamptz updated_at
+    }
+    HISTORIAL_ESTADO_POSTULACIONES {
+        UUID id PK
+        UUID postulacion_id FK(postulaciones.id)
+        string estado_anterior
+        string estado_nuevo
+        timestamptz fecha_cambio
+    }
+    NOTIFICACIONES {
+        UUID id PK
+        UUID usuario_id FK(users.id)
+        string tipo
+        string titulo
+        text contenido
+        bool leida
+        timestamptz created_at
+    }
+    REPORTES_GENERADOS {
+        UUID id PK
+        UUID usuario_id FK(users.id)
+        string tipo_reporte
+        json parametros
+        string url_archivo
+        string estado
+        timestamptz fecha_solicitud
+        timestamptz fecha_completado
+    }
+
+    USERS ||--o{ EGRESADOS : extends
+    USERS ||--o{ EMPRESAS : extends
+    USERS ||--o{ NOTIFICACIONES : has
+
+    EGRESADOS ||--o{ EGRESADO_HABILIDADES : has
+    HABILIDADES ||--o{ EGRESADO_HABILIDADES : has
+
+    OFERTAS_LABORALES ||--o{ OFERTA_HABILIDADES : has
+    HABILIDADES ||--o{ OFERTA_HABILIDADES : has
+
+    EGRESADOS ||--o{ POSTULACIONES : applies
+    OFERTAS_LABORALES ||--o{ POSTULACIONES : receives
+    POSTULACIONES ||--o{ HISTORIAL_ESTADO_POSTULACIONES : has
+
+    USERS ||--o{ REPORTES_GENERADOS : requests

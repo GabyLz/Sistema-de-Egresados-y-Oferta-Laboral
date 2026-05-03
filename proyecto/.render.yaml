@@ -1,0 +1,24 @@
+services:
+  - type: web_service
+    name: egresados-api
+    env: docker
+    region: oregon
+    branch: main
+    dockerfilePath: apps/api/Dockerfile
+    buildCommand: ""
+    startCommand: "npx prisma migrate deploy && node dist/main.js"
+    env:
+      - key: DATABASE_URL
+      - key: SHADOW_DATABASE_URL
+      - key: JWT_SECRET
+      - key: REDIS_URL
+  - type: web_service
+    name: egresados-web
+    env: docker
+    region: oregon
+    branch: main
+    dockerfilePath: apps/web/Dockerfile
+    buildCommand: ""
+    startCommand: "npm start"
+    env:
+      - key: NEXT_PUBLIC_API_URL

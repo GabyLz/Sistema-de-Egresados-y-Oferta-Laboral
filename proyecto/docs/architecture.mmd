@@ -1,0 +1,56 @@
+%% Architecture diagram for Egresados & Oferta Laboral
+%% Mermaid Component Diagram
+
+flowchart TB
+  subgraph Browser[Users]
+    U[User Browser]
+  end
+
+  subgraph Frontend[Next.js (App Router)]
+    FSC[Server Components]
+    FCC[Client Components]
+    TRPC_CLIENT[tRPC Client]
+  end
+
+  subgraph API_Layer[tRPC HTTP API]
+    TRPC_SERVER[tRPC Server]
+  end
+
+  subgraph Backend[NestJS Backend]
+    MODULES[Modules\n(Auth, Egresados, Ofertas, Postulaciones, Reportes, Notificaciones)]
+    SERVICES[Services\n(StatsService, ReportsService)]
+    GUARDS[Guards & RBAC]
+    QUEUE[Worker / BullMQ + Redis]
+  end
+
+  subgraph Infra[Infrastructure]
+    PG[(PostgreSQL)]
+    REDIS[(Redis)]
+    S3[(Storage\nS3 / MinIO)]
+    CACHE[(Optional Redis Cache)]
+    CI[GitHub Actions]
+    VERCEL[Vercel (Frontend)]
+    CLOUD_BACKEND[Cloudflare / Cloud Run (Backend)]
+  end
+
+  U -->|HTTP(S)| FCC
+  U -->|HTTP(S)| FSC
+  FCC -->|tRPC| TRPC_CLIENT
+  FSC -->|Server Render| FSC
+  TRPC_CLIENT -->|HTTP| TRPC_SERVER
+  TRPC_SERVER --> MODULES
+  MODULES --> SERVICES
+  MODULES --> GUARDS
+  MODULES --> QUEUE
+
+  MODULES -->|Reads/Writes| PG
+  SERVICES --> S3
+  QUEUE --> REDIS
+  SERVICES --> REDIS
+  CACHE -->|Optional| SERVICES
+
+  CI -->|Deploy| VERCEL
+  CI -->|Deploy| CLOUD_BACKEND
+
+  classDef infra fill:#f9f,stroke:#333,stroke-width:1px;
+  class Infra infra
