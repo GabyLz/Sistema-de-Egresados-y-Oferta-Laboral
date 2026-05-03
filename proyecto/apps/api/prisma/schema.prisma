@@ -65,7 +65,7 @@ model Empresa {
   sector           String?         @db.VarChar(100)
   ubicacion        String?
   sitioWeb         String?         @map("sitio_web") @db.VarChar(255)
-  descripcion      String?         @db.VarChar(500)
+  descripcion      String?         @db.Text
   logoUrl          String?         @map("logo_url")
   redesSociales    Json?           @map("redes_sociales") // { linkedin, facebook, twitter, etc }
   estado           String          @default("pendiente") @db.VarChar(20) // pendiente, aprobado, rechazado
