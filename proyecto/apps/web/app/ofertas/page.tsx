@@ -748,7 +748,7 @@ export default function OfertasPage() {
                     </div>
                     {(userRole === 'admin' || userRole === 'empresa') && (
                       <div className="form-group">
-                        <label>Fecha de inicio (inicio postulaciones)</label>
+                        <label>Fecha de inicio</label>
                         <input type="date" value={editForm.fechaPublicacion} onChange={(e) => setEditForm({ ...editForm, fechaPublicacion: e.target.value })} />
                       </div>
                     )}
