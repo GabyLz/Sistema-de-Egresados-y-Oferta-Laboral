@@ -319,6 +319,17 @@ export default function OfertasPage() {
         activa: estadoFinal === 'Aprobada',
         empresaId: userRole === 'empresa' ? userId : (editForm.empresaId || (availableCompanies.length > 0 ? availableCompanies[0].id : ''))
       };
+
+      // Validación cliente: fechaPublicacion (inicio) debe ser <= fechaCierre (final)
+      if (editForm.fechaPublicacion && editForm.fechaCierre) {
+        const inicio = new Date(editForm.fechaPublicacion);
+        const fin = new Date(editForm.fechaCierre);
+        if (inicio > fin) {
+          setError('❌ La fecha de inicio debe ser anterior o igual a la fecha final');
+          setTimeout(() => setError(null), 5000);
+          return;
+        }
+      }
       
       if (!body.empresaId) {
         setError('❌ Error: Debe seleccionar una empresa');
@@ -735,16 +746,16 @@ export default function OfertasPage() {
                         {tiposContrato.map(tc => <option key={tc.value} value={tc.value}>{tc.label}</option>)}
                       </select>
                     </div>
+                    {(userRole === 'admin' || userRole === 'empresa') && (
+                      <div className="form-group">
+                        <label>Fecha de inicio (inicio postulaciones)</label>
+                        <input type="date" value={editForm.fechaPublicacion} onChange={(e) => setEditForm({ ...editForm, fechaPublicacion: e.target.value })} />
+                      </div>
+                    )}
                     <div className="form-group">
                       <label>Fecha final</label>
                       <input type="date" value={editForm.fechaCierre} onChange={(e) => setEditForm({ ...editForm, fechaCierre: e.target.value })} />
                     </div>
-                    {(userRole === 'admin' || userRole === 'empresa') && (
-                      <div className="form-group">
-                        <label>Fecha de Publicación (inicio postulaciones)</label>
-                        <input type="date" value={editForm.fechaPublicacion} onChange={(e) => setEditForm({ ...editForm, fechaPublicacion: e.target.value })} />
-                      </div>
-                    )}
                   </div>
                   <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div className="form-group">
