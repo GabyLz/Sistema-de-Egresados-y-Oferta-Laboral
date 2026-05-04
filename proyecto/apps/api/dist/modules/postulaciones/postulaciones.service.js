@@ -18,6 +18,14 @@ let PostulacionesService = class PostulacionesService {
         this.prisma = prisma;
         this.notificacionesService = notificacionesService;
     }
+    toDateKey(value) {
+        if (!value)
+            return null;
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime()))
+            return null;
+        return date.toISOString().slice(0, 10);
+    }
     async create(egresadoId, ofertaId) {
         const prisma = this.prisma;
         // 0. Validar formato de UUIDs para evitar errores de Prisma
@@ -35,6 +43,23 @@ let PostulacionesService = class PostulacionesService {
             });
             if (existente) {
                 throw new common_1.BadRequestException('Ya te has postulado a esta oferta laboral');
+            }
+            const oferta = await prisma.ofertaLaboral.findUnique({
+                where: { id: ofertaId },
+                select: {
+                    id: true,
+                    titulo: true,
+                    fechaPublicacion: true,
+                },
+            });
+            if (!oferta) {
+                throw new common_1.BadRequestException('La oferta laboral no existe');
+            }
+            const hoy = new Date().toISOString().slice(0, 10);
+            const fechaPublicacion = this.toDateKey(oferta.fechaPublicacion);
+            if (fechaPublicacion && fechaPublicacion > hoy) {
+                const fechaPublicacionLegible = new Date(`${fechaPublicacion}T00:00:00Z`).toLocaleDateString('es-PE');
+                throw new common_1.BadRequestException(`Las postulaciones para esta oferta inician el ${fechaPublicacionLegible} y todavía no están habilitadas`);
             }
             // 2. Crear la postulación
             const postulacion = await prisma.postulacion.create({

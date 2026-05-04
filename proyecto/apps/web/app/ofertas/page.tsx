@@ -231,6 +231,7 @@ export default function OfertasPage() {
       salarioMin: oferta.salarioMin,
       salarioMax: oferta.salarioMax,
       fechaCierre: oferta.fechaCierre ? oferta.fechaCierre.split('T')[0] : '',
+      fechaPublicacion: oferta.fechaPublicacion ? oferta.fechaPublicacion.split('T')[0] : '',
       modalidad: oferta.modalidad || 'presencial',
       tipoContrato: oferta.tipoContrato || 'fulltime',
       habilidadesIds: oferta.ofertaHabilidades?.map((oh: any) => oh.habilidadId) || [],
@@ -250,6 +251,7 @@ export default function OfertasPage() {
       salarioMax: 0,
       descripcion: '',
       fechaCierre: '',
+      fechaPublicacion: new Date().toISOString().slice(0,10),
       habilidadesIds: [],
       estado: 'Pendiente'
     });
@@ -311,6 +313,7 @@ export default function OfertasPage() {
         salarioMin: parseFloat(editForm.salarioMin) || 0,
         salarioMax: parseFloat(editForm.salarioMax) || 0,
         fechaCierre: editForm.fechaCierre ? new Date(editForm.fechaCierre).toISOString() : null,
+        fechaPublicacion: editForm.fechaPublicacion ? new Date(editForm.fechaPublicacion).toISOString() : null,
         habilidadesIds: editForm.habilidadesIds || [],
         estado: estadoFinal,
         activa: estadoFinal === 'Aprobada',
@@ -725,7 +728,7 @@ export default function OfertasPage() {
                       </select>
                     </div>
                   </div>
-                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
                     <div className="form-group">
                       <label>Tipo Contrato</label>
                       <select value={editForm.tipoContrato} onChange={(e) => setEditForm({ ...editForm, tipoContrato: e.target.value })}>
@@ -736,6 +739,12 @@ export default function OfertasPage() {
                       <label>Fecha final</label>
                       <input type="date" value={editForm.fechaCierre} onChange={(e) => setEditForm({ ...editForm, fechaCierre: e.target.value })} />
                     </div>
+                    {(userRole === 'admin' || userRole === 'empresa') && (
+                      <div className="form-group">
+                        <label>Fecha de Publicación (inicio postulaciones)</label>
+                        <input type="date" value={editForm.fechaPublicacion} onChange={(e) => setEditForm({ ...editForm, fechaPublicacion: e.target.value })} />
+                      </div>
+                    )}
                   </div>
                   <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div className="form-group">
