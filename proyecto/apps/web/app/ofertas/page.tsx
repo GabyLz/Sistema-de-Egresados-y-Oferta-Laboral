@@ -13,9 +13,23 @@ interface OfertaLaboral {
   salarioMax?: number;
   estado: string;
   createdAt: string;
+  fechaPublicacion?: string;
   fechaCierre?: string;
   empresaId: string;
 }
+
+const toDateKey = (value?: string | null) => {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+};
+
+const canStartApplications = (fechaPublicacion?: string | null) => {
+  const publishKey = toDateKey(fechaPublicacion);
+  if (!publishKey) return true;
+  return publishKey <= new Date().toISOString().slice(0, 10);
+};
 
 export default function OfertasPage() {
   const { isLoggedIn, userRole, userId, loading: authLoading } = useAuth();
@@ -484,14 +498,19 @@ export default function OfertasPage() {
                     {userRole === 'egresado' && (
                       (() => {
                         const isExpired = oferta.fechaCierre && new Date(oferta.fechaCierre) < new Date();
+                        const isNotPublishedYet = !canStartApplications(oferta.fechaPublicacion);
                         const alreadyApplied = userPostulations.includes(oferta.id);
                         
                         if (alreadyApplied) {
                           return <button className="btn btn-success btn-small" style={{ flex: 1, opacity: 0.8 }} disabled>✅ Postulado</button>;
                         }
                         
+                        if (isNotPublishedYet) {
+                          return <button className="btn btn-secondary btn-small" style={{ flex: 1, opacity: 0.6 }} disabled title={`Las postulaciones inician el ${oferta.fechaPublicacion ? new Date(oferta.fechaPublicacion).toLocaleDateString() : 'pronto'}`}>⏳ Disponible desde {oferta.fechaPublicacion ? new Date(oferta.fechaPublicacion).toLocaleDateString() : 'la fecha de publicación'}</button>;
+                        }
+
                         if (isExpired) {
-                          return <button className="btn btn-secondary btn-small" style={{ flex: 1, opacity: 0.6 }} disabled title="La fecha de cierre ha pasado">⌛ Expirada</button>;
+                          return <button className="btn btn-secondary btn-small" style={{ flex: 1, opacity: 0.6 }} disabled title="La fecha final ha pasado">⌛ Expirada</button>;
                         }
 
                         return <button className="btn btn-primary btn-small" style={{ flex: 1 }} onClick={() => setShowPostularModal(oferta.id)}>Postularme</button>;
@@ -608,8 +627,12 @@ export default function OfertasPage() {
                       </p>
                     </div>
                     <div className="detail-item">
-                      <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>📅 Fecha Cierre</p>
-                      <p style={{ fontWeight: '500' }}>{selectedOferta.fechaCierre ? new Date(selectedOferta.fechaCierre).toLocaleDateString() : 'Sin fecha límite'}</p>
+                      <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>📅 Fecha de publicación / inicio</p>
+                      <p style={{ fontWeight: '500' }}>{selectedOferta.fechaPublicacion ? new Date(selectedOferta.fechaPublicacion).toLocaleDateString() : 'Disponible de inmediato'}</p>
+                    </div>
+                    <div className="detail-item">
+                      <p style={{ fontSize: '0.8rem', color: '#666', marginBottom: '4px' }}>📌 Fecha final</p>
+                      <p style={{ fontWeight: '500' }}>{selectedOferta.fechaCierre ? new Date(selectedOferta.fechaCierre).toLocaleDateString() : 'Sin fecha final'}</p>
                     </div>
                   </div>
 
@@ -636,14 +659,19 @@ export default function OfertasPage() {
                       </p>
                       {(() => {
                         const isExpired = selectedOferta.fechaCierre && new Date(selectedOferta.fechaCierre) < new Date();
+                        const isNotPublishedYet = !canStartApplications(selectedOferta.fechaPublicacion);
                         const alreadyApplied = userPostulations.includes(selectedOferta.id);
                         
                         if (alreadyApplied) {
                           return <button className="btn btn-success" style={{ width: '100%' }} disabled>✅ Ya te has postulado a esta oferta</button>;
                         }
                         
+                        if (isNotPublishedYet) {
+                          return <button className="btn btn-secondary" style={{ width: '100%' }} disabled title={`Las postulaciones inician el ${selectedOferta.fechaPublicacion ? new Date(selectedOferta.fechaPublicacion).toLocaleDateString() : 'pronto'}`}>⏳ Disponible desde {selectedOferta.fechaPublicacion ? new Date(selectedOferta.fechaPublicacion).toLocaleDateString() : 'la fecha de publicación'}</button>;
+                        }
+
                         if (isExpired) {
-                          return <button className="btn btn-secondary" style={{ width: '100%' }} disabled>⌛ Esta oferta ha cerrado su convocatoria</button>;
+                          return <button className="btn btn-secondary" style={{ width: '100%' }} disabled>⌛ Esta oferta ya llegó a su fecha final</button>;
                         }
 
                         return (
@@ -705,7 +733,7 @@ export default function OfertasPage() {
                       </select>
                     </div>
                     <div className="form-group">
-                      <label>Fecha de Cierre</label>
+                      <label>Fecha final</label>
                       <input type="date" value={editForm.fechaCierre} onChange={(e) => setEditForm({ ...editForm, fechaCierre: e.target.value })} />
                     </div>
                   </div>

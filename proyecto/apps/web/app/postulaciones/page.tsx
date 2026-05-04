@@ -315,8 +315,8 @@ export default function PostulacionesPage() {
                         </p>
                       </div>
                       <div>
-                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '4px' }}>Fecha de Cierre</p>
-                        <p style={{ fontWeight: '600' }}>{selectedPostulacion.oferta?.fechaCierre ? formatDate(selectedPostulacion.oferta.fechaCierre) : 'Abierta'}</p>
+                        <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: '4px' }}>Fecha final</p>
+                        <p style={{ fontWeight: '600' }}>{selectedPostulacion.oferta?.fechaCierre ? formatDate(selectedPostulacion.oferta.fechaCierre) : 'Sin fecha final'}</p>
                       </div>
                     </div>
 
