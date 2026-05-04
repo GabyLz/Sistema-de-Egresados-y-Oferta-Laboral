@@ -150,10 +150,17 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
         setTimeout(() => setSuccess(null), 3000);
         setComment('');
         await fetchPostulantes();
-        // Actualizar el objeto seleccionado para reflejar el nuevo estado y el historial
-        const updated = await fetch(`${baseUrl}/postulaciones/${pid}`).then(r => r.json());
-        setSelectedPostulante(updated);
-        setSelectedEstado(updated.estado);
+        // Mantener el detalle completo del candidato en el modal y solo sincronizar el estado visible
+        setSelectedPostulante((current: any) =>
+          current && current.id === pid
+            ? {
+                ...current,
+                estado,
+                comentario: comment,
+              }
+            : current,
+        );
+        setSelectedEstado(estado);
       } else {
         throw new Error('Error en la respuesta del servidor');
       }
