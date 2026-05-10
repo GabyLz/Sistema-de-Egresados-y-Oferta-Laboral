@@ -148,9 +148,20 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('No se encontró token. Por favor inicia sesión nuevamente.');
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
       const response = await fetch(`${baseUrl}/postulaciones/${pid}/estado`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           estado,
           motivo: comment,
@@ -179,10 +190,11 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
         );
         setSelectedEstado(estado);
       } else {
-        throw new Error('Error en la respuesta del servidor');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error al actualizar estado');
       }
     } catch (e) { 
-      console.error(e);
+      console.error('Error al actualizar estado:', e);
       setError('Error al actualizar el estado de la postulación.'); 
       setTimeout(() => setError(null), 3000);
     }

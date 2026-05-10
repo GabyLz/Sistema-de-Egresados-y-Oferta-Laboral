@@ -282,7 +282,8 @@ export class PostulacionesService {
         const emailValido = egresado?.user?.email && 
                            emailRegex.test(egresado.user.email) &&
                            !egresado.user.email.includes('sego.local') &&
-                           !egresado.user.email.includes('local');
+                           !egresado.user.email.includes('local') &&
+                           !egresado.user.email.includes('@local');
 
         if (emailValido) {
           try {
@@ -294,12 +295,12 @@ export class PostulacionesService {
               entrevistaHora,
               comentario: motivo,
             });
-            console.log(`Correo de entrevista enviado a ${egresado.user.email}`);
+            console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
           } catch (emailError) {
-            console.error(`Error al enviar correo a ${egresado.user.email}:`, emailError);
+            console.error(`❌ Error al enviar correo a ${egresado.user.email}:`, emailError);
           }
         } else {
-          console.warn(`Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${egresado?.user?.email}`);
+          console.warn(`⚠️ Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${egresado?.user?.email}`);
         }
       }
     } catch (error) {
