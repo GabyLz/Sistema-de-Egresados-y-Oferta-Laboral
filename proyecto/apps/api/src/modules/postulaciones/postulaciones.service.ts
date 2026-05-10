@@ -311,15 +311,21 @@ export class PostulacionesService {
 
         if (email) {
           console.log(`📤 Enviando correo de entrevista a ${egresado.user.email}...`);
-          await this.sendInterviewEmail({
+          void this.sendInterviewEmail({
             to: egresado.user.email,
             nombres: egresado.nombres,
             ofertaTitulo: postulacion.oferta.titulo,
             entrevistaFecha,
             entrevistaHora,
-            comentario: motivo,
-          });
-          console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
+            comentario: motivoConEntrevista,
+          })
+            .then(() => {
+              console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
+            })
+            .catch((error) => {
+              console.error(`❌ Falló el correo de entrevista para ${egresado.user.email}:`, error instanceof Error ? error.message : String(error));
+            });
+          console.log(`🚀 Envío de correo en segundo plano para ${egresado.user.email}`);
         } else {
           console.warn(`⚠️ Egresado sin email registrado para entrevista: ${postulacion.egresadoId}`);
         }
