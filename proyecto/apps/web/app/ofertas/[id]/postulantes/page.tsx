@@ -174,19 +174,31 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
   const handleSendEval = async () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        setError('No se encontró token de autenticación. Por favor, inicia sesión nuevamente.');
+        setTimeout(() => setError(null), 3000);
+        return;
+      }
+
       const response = await fetch(`${baseUrl}/evaluaciones`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ 
           ...evalForm, 
           postulacionId: selectedPostulante.id
-          // empresaId se obtiene del JWT en el backend
         }),
       });
 
       if (response.ok) {
         // Traer las evaluaciones actualizadas para refrescar el historial
-        const evaluacionesRes = await fetch(`${baseUrl}/evaluaciones/postulacion/${selectedPostulante.id}`);
+        const evaluacionesRes = await fetch(`${baseUrl}/evaluaciones/postulacion/${selectedPostulante.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
         if (evaluacionesRes.ok) {
           const evaluacionesActualizadas = await evaluacionesRes.json();
           // Actualizar el selectedPostulante con las nuevas evaluaciones
@@ -202,10 +214,11 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
         // Resetear el formulario de evaluación
         setEvalForm({ puntaje: 5, comentarios: '', competencias: { comunicacion: 5, tecnica: 5, proactividad: 5 } });
       } else {
-        throw new Error('Error en la respuesta del servidor');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Error en la respuesta del servidor');
       }
     } catch (e) { 
-      console.error(e);
+      console.error('Error al guardar evaluación:', e);
       setError('Error al guardar evaluación'); 
       setTimeout(() => setError(null), 3000);
     }
