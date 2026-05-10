@@ -48,8 +48,12 @@ export class PostulacionesService {
       const nodemailer = await import('nodemailer');
       const transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false,
+        requireTLS: true,
+        connectionTimeout: 15000,
+        greetingTimeout: 15000,
+        socketTimeout: 20000,
         auth: {
           user: emailUser,
           pass: emailPass,
@@ -61,13 +65,10 @@ export class PostulacionesService {
       const comentarioHtml = params.comentario ? `<p><strong>Detalle:</strong> ${params.comentario}</p>` : '';
       console.log(`📧 Remitente configurado: ${emailFrom} | Destinatario: ${params.to}`);
 
-      // Crear una promesa de timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout enviando correo (10s)')), 10000)
-      );
+      await transporter.verify();
+      console.log('✅ Transporte SMTP verificado');
 
-      // Enviar correo con timeout
-      const sendPromise = transporter.sendMail({
+      const info = await transporter.sendMail({
         from: `Sistema de Egresados <${emailFrom}>`,
         to: params.to,
         subject: `Entrevista programada - ${params.ofertaTitulo}`,
@@ -81,9 +82,12 @@ export class PostulacionesService {
         `,
       });
 
-      console.log(`⏳ Enviando correo a ${params.to}...`);
-      await Promise.race([sendPromise, timeoutPromise]);
-      console.log(`📨 sendMail finalizó para ${params.to}`);
+      console.log(`✅ sendMail finalizó para ${params.to}:`, {
+        messageId: info.messageId,
+        response: info.response,
+        accepted: info.accepted,
+        rejected: info.rejected,
+      });
     } catch (err) {
       console.error('❌ Error en sendInterviewEmail:', err instanceof Error ? err.message : String(err));
       throw err;
