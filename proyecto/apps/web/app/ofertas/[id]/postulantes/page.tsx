@@ -115,18 +115,22 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
     return weight(a.estado) - weight(b.estado) || new Date(b.fechaPostulacion).getTime() - new Date(a.fechaPostulacion).getTime();
   });
 
-  const fetchPostulantes = async () => {
-    setLoading(true);
+  const fetchPostulantes = async (options?: { silent?: boolean; timeoutMs?: number }) => {
+    const { silent = false, timeoutMs = 12000 } = options || {};
+    if (!silent) setLoading(true);
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
       const [postRes, ofertaRes] = await Promise.all([
-        fetch(`${baseUrl}/ofertas/${ofertaId}/postulaciones`),
-        fetch(`${baseUrl}/ofertas/${ofertaId}`)
+        fetch(`${baseUrl}/ofertas/${ofertaId}/postulaciones`, { signal: controller.signal }),
+        fetch(`${baseUrl}/ofertas/${ofertaId}`, { signal: controller.signal })
       ]);
+      clearTimeout(timeout);
       if (postRes.ok) setPostulaciones(await postRes.json());
       if (ofertaRes.ok) setOferta(await ofertaRes.json());
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { if (!silent) setLoading(false); }
   };
 
   useEffect(() => {
@@ -214,7 +218,7 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
           setInterviewTime('');
           
           console.log('🔄 Refrescando postulantes...');
-          fetchPostulantes().catch((refreshError) => {
+          fetchPostulantes({ silent: true, timeoutMs: 8000 }).catch((refreshError) => {
             console.error('❌ Error al refrescar postulantes:', refreshError);
           });
         } else {
