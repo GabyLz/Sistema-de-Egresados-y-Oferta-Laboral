@@ -44,9 +44,12 @@ export class PostulacionesService {
     }
 
     try {
+      console.log('📨 Preparando transporte SMTP para correo de entrevista');
       const nodemailer = await import('nodemailer');
       const transporter = nodemailer.createTransport({
-        service: 'gmail',
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
         auth: {
           user: emailUser,
           pass: emailPass,
@@ -78,7 +81,9 @@ export class PostulacionesService {
         `,
       });
 
+      console.log(`⏳ Enviando correo a ${params.to}...`);
       await Promise.race([sendPromise, timeoutPromise]);
+      console.log(`📨 sendMail finalizó para ${params.to}`);
     } catch (err) {
       console.error('❌ Error en sendInterviewEmail:', err instanceof Error ? err.message : String(err));
       throw err;

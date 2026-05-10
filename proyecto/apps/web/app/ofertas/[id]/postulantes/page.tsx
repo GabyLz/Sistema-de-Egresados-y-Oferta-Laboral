@@ -214,7 +214,9 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
           setInterviewTime('');
           
           console.log('🔄 Refrescando postulantes...');
-          await fetchPostulantes();
+          fetchPostulantes().catch((refreshError) => {
+            console.error('❌ Error al refrescar postulantes:', refreshError);
+          });
         } else {
           const errorData = await response.json().catch(() => ({}));
           const errorMsg = errorData.message || `Error ${response.status}: ${response.statusText}`;
