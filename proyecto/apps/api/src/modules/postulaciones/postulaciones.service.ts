@@ -307,19 +307,16 @@ export class PostulacionesService {
         console.log(`📧 Validación de email: ${emailValido} (${email})`);
 
         if (emailValido) {
-          // Enviar correo en background SIN bloquear la respuesta del PATCH
-          this.sendInterviewEmail({
+          console.log(`📤 Enviando correo de entrevista a ${egresado.user.email}...`);
+          await this.sendInterviewEmail({
             to: egresado.user.email,
             nombres: egresado.nombres,
             ofertaTitulo: postulacion.oferta.titulo,
             entrevistaFecha,
             entrevistaHora,
             comentario: motivo,
-          }).then(() => {
-            console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
-          }).catch((emailError) => {
-            console.error(`❌ Error al enviar correo a ${egresado.user.email}:`, emailError);
           });
+          console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
         } else {
           console.warn(`⚠️ Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${email}`);
         }

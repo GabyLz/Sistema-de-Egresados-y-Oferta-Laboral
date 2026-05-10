@@ -184,26 +184,37 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
         if (response.ok) {
           const updatedPostulacion = await response.json();
           console.log('✅ Post actualizado:', updatedPostulacion);
+          const comentarioActualizado = updatedPostulacion?.comentario || comment;
           
           setSuccess(`Estado actualizado a ${estado} correctamente.`);
           setTimeout(() => setSuccess(null), 3000);
+          setSelectedEstado(estado);
+          setSelectedPostulante((current: any) =>
+            current && current.id === pid
+              ? {
+                  ...current,
+                  estado,
+                  comentario: comentarioActualizado,
+                }
+              : current,
+          );
+          setPostulaciones((current: any[]) =>
+            current.map((item: any) =>
+              item.id === pid
+                ? {
+                    ...item,
+                    estado,
+                    comentario: comentarioActualizado,
+                  }
+                : item,
+            ),
+          );
           setComment('');
           setInterviewDate('');
           setInterviewTime('');
           
           console.log('🔄 Refrescando postulantes...');
           await fetchPostulantes();
-          
-          setSelectedPostulante((current: any) =>
-            current && current.id === pid
-              ? {
-                  ...current,
-                  estado,
-                  comentario: updatedPostulacion?.comentario || comment,
-                }
-              : current,
-          );
-          setSelectedEstado(estado);
         } else {
           const errorData = await response.json().catch(() => ({}));
           const errorMsg = errorData.message || `Error ${response.status}: ${response.statusText}`;
