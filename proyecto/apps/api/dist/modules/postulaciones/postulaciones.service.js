@@ -253,15 +253,32 @@ let PostulacionesService = class PostulacionesService {
                         },
                     },
                 });
-                if (egresado?.user?.email) {
-                    await this.sendInterviewEmail({
-                        to: egresado.user.email,
-                        nombres: egresado.nombres,
-                        ofertaTitulo: postulacion.oferta.titulo,
-                        entrevistaFecha,
-                        entrevistaHora,
-                        comentario: motivo,
-                    });
+                // Validar que el email sea un email real (no local fake como egresado@sego.local)
+                const email = egresado?.user?.email;
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                const emailValido = !!email &&
+                    emailRegex.test(email) &&
+                    !email.includes('sego.local') &&
+                    !email.includes('local') &&
+                    !email.includes('@local');
+                if (emailValido) {
+                    try {
+                        await this.sendInterviewEmail({
+                            to: egresado.user.email,
+                            nombres: egresado.nombres,
+                            ofertaTitulo: postulacion.oferta.titulo,
+                            entrevistaFecha,
+                            entrevistaHora,
+                            comentario: motivo,
+                        });
+                        console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
+                    }
+                    catch (emailError) {
+                        console.error(`❌ Error al enviar correo a ${egresado.user.email}:`, emailError);
+                    }
+                }
+                else {
+                    console.warn(`⚠️ Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${egresado?.user?.email}`);
                 }
             }
         }

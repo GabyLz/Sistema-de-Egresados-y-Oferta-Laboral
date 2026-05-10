@@ -278,12 +278,13 @@ export class PostulacionesService {
         });
 
         // Validar que el email sea un email real (no local fake como egresado@sego.local)
+        const email = egresado?.user?.email;
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const emailValido = egresado?.user?.email && 
-                           emailRegex.test(egresado.user.email) &&
-                           !egresado.user.email.includes('sego.local') &&
-                           !egresado.user.email.includes('local') &&
-                           !egresado.user.email.includes('@local');
+        const emailValido = !!email && 
+                           emailRegex.test(email) &&
+                           !email.includes('sego.local') &&
+                           !email.includes('local') &&
+                           !email.includes('@local');
 
         if (emailValido) {
           try {
