@@ -174,15 +174,34 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
   const handleSendEval = async () => {
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
-      await fetch(`${baseUrl}/evaluaciones`, {
+      const response = await fetch(`${baseUrl}/evaluaciones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...evalForm, postulacionId: selectedPostulante.id, empresaId: userId }),
       });
-      setSuccess('Evaluación guardada con éxito');
-      setTimeout(() => setSuccess(null), 3000);
-      setShowEvalModal(false);
+
+      if (response.ok) {
+        // Traer las evaluaciones actualizadas para refrescar el historial
+        const evaluacionesRes = await fetch(`${baseUrl}/evaluaciones/postulacion/${selectedPostulante.id}`);
+        if (evaluacionesRes.ok) {
+          const evaluacionesActualizadas = await evaluacionesRes.json();
+          // Actualizar el selectedPostulante con las nuevas evaluaciones
+          setSelectedPostulante((current: any) => ({
+            ...current,
+            evaluaciones: evaluacionesActualizadas
+          }));
+        }
+        
+        setSuccess('Evaluación guardada con éxito');
+        setTimeout(() => setSuccess(null), 3000);
+        setShowEvalModal(false);
+        // Resetear el formulario de evaluación
+        setEvalForm({ puntaje: 5, comentarios: '', competencias: { comunicacion: 5, tecnica: 5, proactividad: 5 } });
+      } else {
+        throw new Error('Error en la respuesta del servidor');
+      }
     } catch (e) { 
+      console.error(e);
       setError('Error al guardar evaluación'); 
       setTimeout(() => setError(null), 3000);
     }
