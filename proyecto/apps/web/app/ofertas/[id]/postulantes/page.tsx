@@ -195,18 +195,28 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
       });
 
       if (response.ok) {
-        // Traer las evaluaciones actualizadas para refrescar el historial
-        const evaluacionesRes = await fetch(`${baseUrl}/evaluaciones/postulacion/${selectedPostulante.id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (evaluacionesRes.ok) {
-          const evaluacionesActualizadas = await evaluacionesRes.json();
-          // Actualizar el selectedPostulante con las nuevas evaluaciones
-          setSelectedPostulante((current: any) => ({
+        const nuevaEvaluacion = await response.json();
+
+        // Refrescar historial al instante sin recargar pagina
+        setSelectedPostulante((current: any) => {
+          if (!current) return current;
+          return {
             ...current,
-            evaluaciones: evaluacionesActualizadas
-          }));
-        }
+            evaluaciones: [nuevaEvaluacion, ...(current.evaluaciones || [])],
+          };
+        });
+
+        // Sincronizar tambien el arreglo principal para mantener consistencia
+        setPostulaciones((current: any[]) =>
+          current.map((item: any) =>
+            item.id === selectedPostulante.id
+              ? {
+                  ...item,
+                  evaluaciones: [nuevaEvaluacion, ...(item.evaluaciones || [])],
+                }
+              : item,
+          ),
+        );
         
         setSuccess('Evaluación guardada con éxito');
         setTimeout(() => setSuccess(null), 3000);
