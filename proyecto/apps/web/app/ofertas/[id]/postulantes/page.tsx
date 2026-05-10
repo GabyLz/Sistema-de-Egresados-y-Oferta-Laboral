@@ -159,50 +159,67 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
       }
 
       console.log('📡 Enviando PATCH a:', `${baseUrl}/postulaciones/${pid}/estado`);
-      const response = await fetch(`${baseUrl}/postulaciones/${pid}/estado`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          estado,
-          motivo: comment,
-          entrevistaFecha: estado?.toLowerCase() === 'entrevista' ? interviewDate : undefined,
-          entrevistaHora: estado?.toLowerCase() === 'entrevista' ? interviewTime : undefined,
-        }),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000); // 15 segundo timeout
       
-      console.log('📨 Respuesta:', response.status, response.statusText);
-      
-      if (response.ok) {
-        const updatedPostulacion = await response.json();
-        console.log('✅ Post actualizado:', updatedPostulacion);
+      try {
+        const response = await fetch(`${baseUrl}/postulaciones/${pid}/estado`, {
+          method: 'PATCH',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            estado,
+            motivo: comment,
+            entrevistaFecha: estado?.toLowerCase() === 'entrevista' ? interviewDate : undefined,
+            entrevistaHora: estado?.toLowerCase() === 'entrevista' ? interviewTime : undefined,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
         
-        setSuccess(`Estado actualizado a ${estado} correctamente.`);
-        setTimeout(() => setSuccess(null), 3000);
-        setComment('');
-        setInterviewDate('');
-        setInterviewTime('');
+        console.log('📨 Respuesta:', response.status, response.statusText);
         
-        console.log('🔄 Refrescando postulantes...');
-        await fetchPostulantes();
-        
-        setSelectedPostulante((current: any) =>
-          current && current.id === pid
-            ? {
-                ...current,
-                estado,
-                comentario: updatedPostulacion?.comentario || comment,
-              }
-            : current,
-        );
-        setSelectedEstado(estado);
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData.message || `Error ${response.status}: ${response.statusText}`;
-        console.error('Backend error response:', errorData);
-        throw new Error(errorMsg);
+        if (response.ok) {
+          const updatedPostulacion = await response.json();
+          console.log('✅ Post actualizado:', updatedPostulacion);
+          
+          setSuccess(`Estado actualizado a ${estado} correctamente.`);
+          setTimeout(() => setSuccess(null), 3000);
+          setComment('');
+          setInterviewDate('');
+          setInterviewTime('');
+          
+          console.log('🔄 Refrescando postulantes...');
+          await fetchPostulantes();
+          
+          setSelectedPostulante((current: any) =>
+            current && current.id === pid
+              ? {
+                  ...current,
+                  estado,
+                  comentario: updatedPostulacion?.comentario || comment,
+                }
+              : current,
+          );
+          setSelectedEstado(estado);
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = errorData.message || `Error ${response.status}: ${response.statusText}`;
+          console.error('Backend error response:', errorData);
+          throw new Error(errorMsg);
+        }
+      } catch (fetchError) {
+        clearTimeout(timeout);
+        if (fetchError instanceof TypeError && fetchError.message === 'Failed to fetch') {
+          console.error('❌ Error de red o CORS:', fetchError);
+          throw new Error('Error de conexión con el servidor. Verifica tu conexión.');
+        } else if (fetchError instanceof DOMException && fetchError.name === 'AbortError') {
+          console.error('❌ Timeout (15s) esperando respuesta del servidor');
+          throw new Error('El servidor tardó demasiado en responder. Intenta de nuevo.');
+        }
+        throw fetchError;
       }
     } catch (e) { 
       const mensaje = e instanceof Error ? e.message : String(e);

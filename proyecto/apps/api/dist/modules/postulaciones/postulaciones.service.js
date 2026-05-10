@@ -40,33 +40,43 @@ let PostulacionesService = class PostulacionesService {
         const emailUser = process.env.EMAIL_USER;
         const emailPass = process.env.EMAIL_PASS;
         if (!emailUser || !emailPass) {
-            console.warn('EMAIL_USER o EMAIL_PASS no configurados. Se omite envio de correo de entrevista.');
+            console.warn('⚠️ EMAIL_USER o EMAIL_PASS no configurados. Se omite envio de correo de entrevista.');
             return;
         }
-        const nodemailer = await import('nodemailer');
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: emailUser,
-                pass: emailPass,
-            },
-        });
-        const fechaLegible = this.formatInterviewDate(params.entrevistaFecha);
-        const saludo = params.nombres ? `Hola ${params.nombres},` : 'Hola,';
-        const comentarioHtml = params.comentario ? `<p><strong>Detalle:</strong> ${params.comentario}</p>` : '';
-        await transporter.sendMail({
-            from: `Sistema de Egresados <${emailUser}>`,
-            to: params.to,
-            subject: `Entrevista programada - ${params.ofertaTitulo}`,
-            text: `${saludo}\n\nTu postulación para "${params.ofertaTitulo}" pasó a entrevista.\nFecha: ${fechaLegible}\nHora: ${params.entrevistaHora}\n${params.comentario ? `Detalle: ${params.comentario}\n` : ''}\nÉxitos en tu entrevista.`,
-            html: `
-        <p>${saludo}</p>
-        <p>Tu postulación para <strong>${params.ofertaTitulo}</strong> pasó a entrevista.</p>
-        <p><strong>Fecha:</strong> ${fechaLegible}<br/><strong>Hora:</strong> ${params.entrevistaHora}</p>
-        ${comentarioHtml}
-        <p>Éxitos en tu entrevista.</p>
-      `,
-        });
+        try {
+            const nodemailer = await import('nodemailer');
+            const transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: emailUser,
+                    pass: emailPass,
+                },
+            });
+            const fechaLegible = this.formatInterviewDate(params.entrevistaFecha);
+            const saludo = params.nombres ? `Hola ${params.nombres},` : 'Hola,';
+            const comentarioHtml = params.comentario ? `<p><strong>Detalle:</strong> ${params.comentario}</p>` : '';
+            // Crear una promesa de timeout
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout enviando correo (10s)')), 10000));
+            // Enviar correo con timeout
+            const sendPromise = transporter.sendMail({
+                from: `Sistema de Egresados <${emailUser}>`,
+                to: params.to,
+                subject: `Entrevista programada - ${params.ofertaTitulo}`,
+                text: `${saludo}\n\nTu postulación para "${params.ofertaTitulo}" pasó a entrevista.\nFecha: ${fechaLegible}\nHora: ${params.entrevistaHora}\n${params.comentario ? `Detalle: ${params.comentario}\n` : ''}\nÉxitos en tu entrevista.`,
+                html: `
+          <p>${saludo}</p>
+          <p>Tu postulación para <strong>${params.ofertaTitulo}</strong> pasó a entrevista.</p>
+          <p><strong>Fecha:</strong> ${fechaLegible}<br/><strong>Hora:</strong> ${params.entrevistaHora}</p>
+          ${comentarioHtml}
+          <p>Éxitos en tu entrevista.</p>
+        `,
+            });
+            await Promise.race([sendPromise, timeoutPromise]);
+        }
+        catch (err) {
+            console.error('❌ Error en sendInterviewEmail:', err instanceof Error ? err.message : String(err));
+            throw err;
+        }
     }
     async create(egresadoId, ofertaId) {
         const prisma = this.prisma;
@@ -267,21 +277,19 @@ let PostulacionesService = class PostulacionesService {
                     !email.includes('@local');
                 console.log(`📧 Validación de email: ${emailValido} (${email})`);
                 if (emailValido) {
-                    try {
-                        console.log(`📤 Enviando correo de entrevista a ${egresado.user.email}...`);
-                        await this.sendInterviewEmail({
-                            to: egresado.user.email,
-                            nombres: egresado.nombres,
-                            ofertaTitulo: postulacion.oferta.titulo,
-                            entrevistaFecha,
-                            entrevistaHora,
-                            comentario: motivo,
-                        });
+                    // Enviar correo en background SIN bloquear la respuesta del PATCH
+                    this.sendInterviewEmail({
+                        to: egresado.user.email,
+                        nombres: egresado.nombres,
+                        ofertaTitulo: postulacion.oferta.titulo,
+                        entrevistaFecha,
+                        entrevistaHora,
+                        comentario: motivo,
+                    }).then(() => {
                         console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
-                    }
-                    catch (emailError) {
+                    }).catch((emailError) => {
                         console.error(`❌ Error al enviar correo a ${egresado.user.email}:`, emailError);
-                    }
+                    });
                 }
                 else {
                     console.warn(`⚠️ Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${email}`);
