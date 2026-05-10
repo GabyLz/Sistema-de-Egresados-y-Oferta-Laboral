@@ -191,12 +191,15 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
         setSelectedEstado(estado);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Error al actualizar estado');
+        const errorMsg = errorData.message || `Error ${response.status}: ${response.statusText}`;
+        console.error('Backend error response:', errorData);
+        throw new Error(errorMsg);
       }
     } catch (e) { 
-      console.error('Error al actualizar estado:', e);
-      setError('Error al actualizar el estado de la postulación.'); 
-      setTimeout(() => setError(null), 3000);
+      const mensaje = e instanceof Error ? e.message : String(e);
+      console.error('❌ Error al actualizar estado:', mensaje);
+      setError(`Error: ${mensaje}`); 
+      setTimeout(() => setError(null), 5000);
     }
   };
 
