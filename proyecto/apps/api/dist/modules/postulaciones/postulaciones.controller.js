@@ -29,7 +29,7 @@ let PostulacionesController = class PostulacionesController {
         return this.service.findByEmpresa(id);
     }
     async updateStatus(id, body) {
-        return this.service.updateStatus(id, body.estado, body.motivo);
+        return this.service.updateStatus(id, body.estado, body.motivo, body.entrevistaFecha, body.entrevistaHora);
     }
 };
 exports.PostulacionesController = PostulacionesController;

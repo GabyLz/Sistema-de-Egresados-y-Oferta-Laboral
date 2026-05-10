@@ -26,6 +26,48 @@ let PostulacionesService = class PostulacionesService {
             return null;
         return date.toISOString().slice(0, 10);
     }
+    formatInterviewDate(fecha) {
+        const date = new Date(`${fecha}T00:00:00`);
+        if (Number.isNaN(date.getTime()))
+            return fecha;
+        return date.toLocaleDateString('es-PE', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+        });
+    }
+    async sendInterviewEmail(params) {
+        const emailUser = process.env.EMAIL_USER;
+        const emailPass = process.env.EMAIL_PASS;
+        if (!emailUser || !emailPass) {
+            console.warn('EMAIL_USER o EMAIL_PASS no configurados. Se omite envio de correo de entrevista.');
+            return;
+        }
+        const nodemailer = await import('nodemailer');
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: emailUser,
+                pass: emailPass,
+            },
+        });
+        const fechaLegible = this.formatInterviewDate(params.entrevistaFecha);
+        const saludo = params.nombres ? `Hola ${params.nombres},` : 'Hola,';
+        const comentarioHtml = params.comentario ? `<p><strong>Detalle:</strong> ${params.comentario}</p>` : '';
+        await transporter.sendMail({
+            from: `Sistema de Egresados <${emailUser}>`,
+            to: params.to,
+            subject: `Entrevista programada - ${params.ofertaTitulo}`,
+            text: `${saludo}\n\nTu postulación para "${params.ofertaTitulo}" pasó a entrevista.\nFecha: ${fechaLegible}\nHora: ${params.entrevistaHora}\n${params.comentario ? `Detalle: ${params.comentario}\n` : ''}\nÉxitos en tu entrevista.`,
+            html: `
+        <p>${saludo}</p>
+        <p>Tu postulación para <strong>${params.ofertaTitulo}</strong> pasó a entrevista.</p>
+        <p><strong>Fecha:</strong> ${fechaLegible}<br/><strong>Hora:</strong> ${params.entrevistaHora}</p>
+        ${comentarioHtml}
+        <p>Éxitos en tu entrevista.</p>
+      `,
+        });
+    }
     async create(egresadoId, ofertaId) {
         const prisma = this.prisma;
         // 0. Validar formato de UUIDs para evitar errores de Prisma
@@ -130,10 +172,18 @@ let PostulacionesService = class PostulacionesService {
             orderBy: { fechaPostulacion: 'desc' },
         });
     }
-    async updateStatus(id, estado, motivo) {
+    async updateStatus(id, estado, motivo, entrevistaFecha, entrevistaHora) {
         const prisma = this.prisma;
         const estadoNormalizado = estado?.trim().toLowerCase();
         const estaContratado = estadoNormalizado === 'contratado';
+        const esEntrevista = estadoNormalizado === 'entrevista';
+        if (esEntrevista && (!entrevistaFecha || !entrevistaHora)) {
+            throw new common_1.BadRequestException('Para programar entrevista debe ingresar fecha y hora');
+        }
+        const motivoFinal = motivo || `Cambio de estado a ${estado}`;
+        const motivoConEntrevista = esEntrevista
+            ? `${motivoFinal}. Entrevista programada para ${this.formatInterviewDate(entrevistaFecha)} a las ${entrevistaHora}.`
+            : motivoFinal;
         // 1. Obtener estado anterior
         const actual = await prisma.postulacion.findUnique({
             where: { id },
@@ -148,7 +198,7 @@ let PostulacionesService = class PostulacionesService {
                 where: { id },
                 data: {
                     estado,
-                    comentario: motivo || `Cambio de estado a ${estado}`
+                    comentario: motivoConEntrevista,
                 },
                 include: {
                     oferta: true,
@@ -181,7 +231,7 @@ let PostulacionesService = class PostulacionesService {
                     postulacionId: id,
                     estadoAnterior: actual.estado,
                     estadoNuevo: estado,
-                    motivo: motivo || `Cambio de estado a ${estado}`,
+                    motivo: motivoConEntrevista,
                 }
             });
             return updated;
@@ -194,6 +244,26 @@ let PostulacionesService = class PostulacionesService {
                 mensaje: `Tu postulación para "${postulacion.oferta.titulo}" ha cambiado al estado: ${estado}`,
                 tipo: 'interna',
             });
+            if (esEntrevista && entrevistaFecha && entrevistaHora) {
+                const egresado = await prisma.egresado.findUnique({
+                    where: { id: postulacion.egresadoId },
+                    include: {
+                        user: {
+                            select: { email: true },
+                        },
+                    },
+                });
+                if (egresado?.user?.email) {
+                    await this.sendInterviewEmail({
+                        to: egresado.user.email,
+                        nombres: egresado.nombres,
+                        ofertaTitulo: postulacion.oferta.titulo,
+                        entrevistaFecha,
+                        entrevistaHora,
+                        comentario: motivo,
+                    });
+                }
+            }
         }
         catch (error) {
             console.error('Error al enviar notificación:', error);

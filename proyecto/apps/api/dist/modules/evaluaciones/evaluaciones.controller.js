@@ -20,8 +20,12 @@ let EvaluacionesController = class EvaluacionesController {
     constructor(service) {
         this.service = service;
     }
-    async create(body) {
-        return this.service.create(body);
+    async create(body, req) {
+        // Usar el ID del usuario autenticado desde el JWT, no el enviado en el body
+        return this.service.create({
+            ...body,
+            empresaId: req.user.id
+        });
     }
     async listByPostulacion(id) {
         return this.service.findByPostulacion(id);
@@ -38,8 +42,9 @@ __decorate([
     (0, common_1.UseGuards)(jwt_guard_1.JwtAuthGuard),
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", Promise)
 ], EvaluacionesController.prototype, "create", null);
 __decorate([

@@ -16,6 +16,8 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
   const [comment, setComment] = useState('');
   const [showEvalModal, setShowEvalModal] = useState(false);
   const [evalForm, setEvalForm] = useState({ puntaje: 5, comentarios: '', competencias: { comunicacion: 5, tecnica: 5, proactividad: 5 } });
+  const [interviewDate, setInterviewDate] = useState('');
+  const [interviewTime, setInterviewTime] = useState('');
 
   const [selectedEstado, setSelectedEstado] = useState('');
   const [success, setSuccess] = useState<string | null>(null);
@@ -137,18 +139,33 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
       setError('Por favor, ingresa un comentario o motivo para el cambio de estado.');
       return;
     }
+
+    if (estado?.toLowerCase() === 'entrevista' && (!interviewDate || !interviewTime)) {
+      setError('Para estado entrevista, registra la fecha y hora.');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
     try {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${baseUrl}/postulaciones/${pid}/estado`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ estado, motivo: comment }),
+        body: JSON.stringify({
+          estado,
+          motivo: comment,
+          entrevistaFecha: estado?.toLowerCase() === 'entrevista' ? interviewDate : undefined,
+          entrevistaHora: estado?.toLowerCase() === 'entrevista' ? interviewTime : undefined,
+        }),
       });
       
       if (response.ok) {
+        const updatedPostulacion = await response.json();
         setSuccess(`Estado actualizado a ${estado} correctamente.`);
         setTimeout(() => setSuccess(null), 3000);
         setComment('');
+        setInterviewDate('');
+        setInterviewTime('');
         await fetchPostulantes();
         // Mantener el detalle completo del candidato en el modal y solo sincronizar el estado visible
         setSelectedPostulante((current: any) =>
@@ -156,7 +173,7 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
             ? {
                 ...current,
                 estado,
-                comentario: comment,
+                comentario: updatedPostulacion?.comentario || comment,
               }
             : current,
         );
@@ -321,6 +338,8 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                       <button className="btn btn-secondary btn-small" onClick={() => { 
                         setSelectedPostulante(p); 
                         setSelectedEstado(p.estado);
+                        setInterviewDate('');
+                        setInterviewTime('');
                         setShowModal(true); 
                       }}>Ver Perfil</button>
                     </td>
@@ -385,6 +404,30 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
                         <label className="form-label small text-muted">Comentario Interno</label>
                         <textarea className="form-control" style={{ borderRadius: '8px' }} rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="Escribe un motivo o comentario..."></textarea>
                       </div>
+                      {selectedEstado?.toLowerCase() === 'entrevista' && (
+                        <>
+                          <div className="mb-3">
+                            <label className="form-label small text-muted">Fecha de Entrevista</label>
+                            <input
+                              type="date"
+                              className="form-control"
+                              style={{ borderRadius: '8px' }}
+                              value={interviewDate}
+                              onChange={(e) => setInterviewDate(e.target.value)}
+                            />
+                          </div>
+                          <div className="mb-3">
+                            <label className="form-label small text-muted">Hora de Entrevista</label>
+                            <input
+                              type="time"
+                              className="form-control"
+                              style={{ borderRadius: '8px' }}
+                              value={interviewTime}
+                              onChange={(e) => setInterviewTime(e.target.value)}
+                            />
+                          </div>
+                        </>
+                      )}
                       <div className="mt-3 pt-3 border-top">
                         <p className="small text-muted mb-2">Comentario Actual</p>
                         <div className="p-3 rounded-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', color: '#0f172a' }}>

@@ -21,7 +21,10 @@ export class PostulacionesController {
   }
 
   @Patch(':id/estado')
-  async updateStatus(@Param('id') id: string, @Body() body: { estado: string; motivo?: string }) {
-    return this.service.updateStatus(id, body.estado, body.motivo);
+  async updateStatus(
+    @Param('id') id: string,
+    @Body() body: { estado: string; motivo?: string; entrevistaFecha?: string; entrevistaHora?: string },
+  ) {
+    return this.service.updateStatus(id, body.estado, body.motivo, body.entrevistaFecha, body.entrevistaHora);
   }
 }
