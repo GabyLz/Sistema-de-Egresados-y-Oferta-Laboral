@@ -34,43 +34,27 @@ export class PostulacionesService {
     entrevistaHora: string;
     comentario?: string;
   }) {
-    const emailUser = process.env.EMAIL_USER;
-    const emailPass = process.env.EMAIL_PASS;
-    const emailFrom = process.env.EMAIL_FROM || emailUser;
+    const sendgridApiKey = process.env.SENDGRID_API_KEY;
+    const emailFrom = process.env.EMAIL_FROM || 'noreply@sistemadegresados.com';
 
-    if (!emailUser || !emailPass) {
-      console.warn('⚠️ EMAIL_USER o EMAIL_PASS no configurados. Se omite envio de correo de entrevista.');
+    if (!sendgridApiKey) {
+      console.warn('⚠️ SENDGRID_API_KEY no configurada. Se omite envío de correo de entrevista.');
       return;
     }
 
     try {
-      console.log('📨 Preparando transporte SMTP para correo de entrevista');
-      const nodemailer = await import('nodemailer');
-      const transporter = nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
-        family: 4,
-        connectionTimeout: 15000,
-        greetingTimeout: 15000,
-        socketTimeout: 20000,
-        auth: {
-          user: emailUser,
-          pass: emailPass,
-        },
-      });
+      console.log('📨 Preparando envío via SendGrid (HTTP) para correo de entrevista');
+      const sgMail = await import('@sendgrid/mail');
+      sgMail.default.setApiKey(sendgridApiKey);
 
       const fechaLegible = this.formatInterviewDate(params.entrevistaFecha);
       const saludo = params.nombres ? `Hola ${params.nombres},` : 'Hola,';
       const comentarioHtml = params.comentario ? `<p><strong>Detalle:</strong> ${params.comentario}</p>` : '';
-      console.log(`📧 Remitente configurado: ${emailFrom} | Destinatario: ${params.to}`);
+      console.log(`📧 Remitente: ${emailFrom} | Destinatario: ${params.to}`);
 
-      await transporter.verify();
-      console.log('✅ Transporte SMTP verificado');
-
-      const info = await transporter.sendMail({
-        from: `Sistema de Egresados <${emailFrom}>`,
+      const msg = {
         to: params.to,
+        from: emailFrom,
         subject: `Entrevista programada - ${params.ofertaTitulo}`,
         text: `${saludo}\n\nTu postulación para "${params.ofertaTitulo}" pasó a entrevista.\nFecha: ${fechaLegible}\nHora: ${params.entrevistaHora}\n${params.comentario ? `Detalle: ${params.comentario}\n` : ''}\nÉxitos en tu entrevista.`,
         html: `
@@ -80,13 +64,12 @@ export class PostulacionesService {
           ${comentarioHtml}
           <p>Éxitos en tu entrevista.</p>
         `,
-      });
+      };
 
-      console.log(`✅ sendMail finalizó para ${params.to}:`, {
-        messageId: info.messageId,
-        response: info.response,
-        accepted: info.accepted,
-        rejected: info.rejected,
+      const response = await sgMail.default.send(msg);
+      console.log(`✅ Correo enviado via SendGrid para ${params.to}:`, {
+        statusCode: response[0].statusCode,
+        headers: response[0].headers?.['x-message-id'],
       });
     } catch (err) {
       console.error('❌ Error en sendInterviewEmail:', err instanceof Error ? err.message : String(err));
