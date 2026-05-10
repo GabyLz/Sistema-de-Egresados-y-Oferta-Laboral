@@ -238,13 +238,16 @@ let PostulacionesService = class PostulacionesService {
         });
         // 3. Notificar al egresado
         try {
+            console.log(`📨 Creando notificación para egresado ${postulacion.egresadoId}`);
             await this.notificacionesService.create({
                 userId: postulacion.egresadoId,
                 titulo: 'Actualización de Postulación',
                 mensaje: `Tu postulación para "${postulacion.oferta.titulo}" ha cambiado al estado: ${estado}`,
                 tipo: 'interna',
             });
+            console.log(`✅ Notificación creada`);
             if (esEntrevista && entrevistaFecha && entrevistaHora) {
+                console.log(`🎯 Estado es entrevista, buscando egresado ${postulacion.egresadoId}`);
                 const egresado = await prisma.egresado.findUnique({
                     where: { id: postulacion.egresadoId },
                     include: {
@@ -253,6 +256,7 @@ let PostulacionesService = class PostulacionesService {
                         },
                     },
                 });
+                console.log(`👤 Egresado encontrado:`, egresado?.user?.email);
                 // Validar que el email sea un email real (no local fake como egresado@sego.local)
                 const email = egresado?.user?.email;
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -261,8 +265,10 @@ let PostulacionesService = class PostulacionesService {
                     !email.includes('sego.local') &&
                     !email.includes('local') &&
                     !email.includes('@local');
+                console.log(`📧 Validación de email: ${emailValido} (${email})`);
                 if (emailValido) {
                     try {
+                        console.log(`📤 Enviando correo de entrevista a ${egresado.user.email}...`);
                         await this.sendInterviewEmail({
                             to: egresado.user.email,
                             nombres: egresado.nombres,
@@ -278,8 +284,11 @@ let PostulacionesService = class PostulacionesService {
                     }
                 }
                 else {
-                    console.warn(`⚠️ Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${egresado?.user?.email}`);
+                    console.warn(`⚠️ Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${email}`);
                 }
+            }
+            else {
+                console.log(`⏭️ No es entrevista o faltan datos: esEntrevista=${esEntrevista}, fecha=${entrevistaFecha}, hora=${entrevistaHora}`);
             }
         }
         catch (error) {

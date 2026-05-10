@@ -135,6 +135,8 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
   }, [isLoggedIn, authLoading, userRole]);
 
   const handleUpdateStatus = async (pid: string, estado: string) => {
+    console.log('🔄 handleUpdateStatus llamado con:', { pid, estado, comment, interviewDate, interviewTime });
+    
     if (!comment.trim()) {
       setError('Por favor, ingresa un comentario o motivo para el cambio de estado.');
       return;
@@ -156,6 +158,7 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
         return;
       }
 
+      console.log('📡 Enviando PATCH a:', `${baseUrl}/postulaciones/${pid}/estado`);
       const response = await fetch(`${baseUrl}/postulaciones/${pid}/estado`, {
         method: 'PATCH',
         headers: { 
@@ -170,15 +173,21 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
         }),
       });
       
+      console.log('📨 Respuesta:', response.status, response.statusText);
+      
       if (response.ok) {
         const updatedPostulacion = await response.json();
+        console.log('✅ Post actualizado:', updatedPostulacion);
+        
         setSuccess(`Estado actualizado a ${estado} correctamente.`);
         setTimeout(() => setSuccess(null), 3000);
         setComment('');
         setInterviewDate('');
         setInterviewTime('');
+        
+        console.log('🔄 Refrescando postulantes...');
         await fetchPostulantes();
-        // Mantener el detalle completo del candidato en el modal y solo sincronizar el estado visible
+        
         setSelectedPostulante((current: any) =>
           current && current.id === pid
             ? {
