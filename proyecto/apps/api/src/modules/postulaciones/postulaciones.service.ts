@@ -297,18 +297,10 @@ export class PostulacionesService {
         
         console.log(`👤 Egresado encontrado:`, egresado?.user?.email);
 
-        // Validar que el email sea un email real (no local fake como egresado@sego.local)
         const email = egresado?.user?.email;
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        const emailValido = !!email && 
-                           emailRegex.test(email) &&
-                           !email.includes('sego.local') &&
-                           !email.includes('local') &&
-                           !email.includes('@local');
+        console.log(`📧 Email destino para entrevista: ${email}`);
 
-        console.log(`📧 Validación de email: ${emailValido} (${email})`);
-
-        if (emailValido) {
+        if (email) {
           console.log(`📤 Enviando correo de entrevista a ${egresado.user.email}...`);
           await this.sendInterviewEmail({
             to: egresado.user.email,
@@ -320,7 +312,7 @@ export class PostulacionesService {
           });
           console.log(`✅ Correo de entrevista enviado a ${egresado.user.email}`);
         } else {
-          console.warn(`⚠️ Email inválido o de prueba para egresado ${postulacion.egresadoId}: ${email}`);
+          console.warn(`⚠️ Egresado sin email registrado para entrevista: ${postulacion.egresadoId}`);
         }
       } else {
         console.log(`⏭️ No es entrevista o faltan datos: esEntrevista=${esEntrevista}, fecha=${entrevistaFecha}, hora=${entrevistaHora}`);
