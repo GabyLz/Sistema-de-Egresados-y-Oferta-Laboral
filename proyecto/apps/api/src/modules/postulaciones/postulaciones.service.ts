@@ -36,6 +36,7 @@ export class PostulacionesService {
   }) {
     const emailUser = process.env.EMAIL_USER;
     const emailPass = process.env.EMAIL_PASS;
+    const emailFrom = process.env.EMAIL_FROM || emailUser;
 
     if (!emailUser || !emailPass) {
       console.warn('⚠️ EMAIL_USER o EMAIL_PASS no configurados. Se omite envio de correo de entrevista.');
@@ -55,6 +56,7 @@ export class PostulacionesService {
       const fechaLegible = this.formatInterviewDate(params.entrevistaFecha);
       const saludo = params.nombres ? `Hola ${params.nombres},` : 'Hola,';
       const comentarioHtml = params.comentario ? `<p><strong>Detalle:</strong> ${params.comentario}</p>` : '';
+      console.log(`📧 Remitente configurado: ${emailFrom} | Destinatario: ${params.to}`);
 
       // Crear una promesa de timeout
       const timeoutPromise = new Promise((_, reject) => 
@@ -63,7 +65,7 @@ export class PostulacionesService {
 
       // Enviar correo con timeout
       const sendPromise = transporter.sendMail({
-        from: `Sistema de Egresados <${emailUser}>`,
+        from: `Sistema de Egresados <${emailFrom}>`,
         to: params.to,
         subject: `Entrevista programada - ${params.ofertaTitulo}`,
         text: `${saludo}\n\nTu postulación para "${params.ofertaTitulo}" pasó a entrevista.\nFecha: ${fechaLegible}\nHora: ${params.entrevistaHora}\n${params.comentario ? `Detalle: ${params.comentario}\n` : ''}\nÉxitos en tu entrevista.`,
