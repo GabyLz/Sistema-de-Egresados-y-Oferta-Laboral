@@ -177,7 +177,11 @@ export default function PostulantesPage({ params }: { params: Promise<{ id: stri
       const response = await fetch(`${baseUrl}/evaluaciones`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...evalForm, postulacionId: selectedPostulante.id, empresaId: userId }),
+        body: JSON.stringify({ 
+          ...evalForm, 
+          postulacionId: selectedPostulante.id
+          // empresaId se obtiene del JWT en el backend
+        }),
       });
 
       if (response.ok) {

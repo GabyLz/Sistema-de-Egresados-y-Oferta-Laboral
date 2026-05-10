@@ -8,8 +8,12 @@ export class EvaluacionesController {
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  async create(@Body() body: any) {
-    return this.service.create(body);
+  async create(@Body() body: any, @Request() req: any) {
+    // Usar el ID del usuario autenticado desde el JWT, no el enviado en el body
+    return this.service.create({
+      ...body,
+      empresaId: req.user.id
+    });
   }
 
   @UseGuards(JwtAuthGuard)
